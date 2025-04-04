@@ -1,31 +1,33 @@
-// server.js
-const express = require("express");
-const { exec } = require("child_process");
-const path = require("path");
-
+const express = require('express');
+const ytDlp = require('yt-dlp');  // Assuming yt-dlp is available globally
 const app = express();
-const port = process.env.PORT || 3000;
+const port = 3000;
 
-// Serve static files
-app.use(express.static(path.join(__dirname, "public")));
+// Middleware to parse JSON bodies
+app.use(express.json());
 
-// Endpoint to get the video URL from yt-dlp
-app.get("/get-video-url", (req, res) => {
-    const videoUrl = req.query.url;
-    if (!videoUrl) {
-        return res.status(400).json({ error: "No URL provided" });
-    }
+// GET endpoint to fetch the video URL from the provided YouTube link
+app.get('/getVideoUrl', async (req, res) => {
+  const { url } = req.query;
 
-    // Execute yt-dlp to fetch the video URL
-    exec(`yt-dlp --get-url "${videoUrl}"`, (error, stdout, stderr) => {
-        if (error) {
-            return res.status(500).json({ error: stderr || error.message });
-        }
-        res.json({ videoUrl: stdout.trim() });
-    });
+  if (!url) {
+    return res.status(400).json({ error: 'No URL provided' });
+  }
+
+  try {
+    // Run yt-dlp to get the video URL
+    const result = await ytDlp.exec([url, '--get-url']);
+    const videoUrl = result.stdout.trim();
+
+    // Return the video URL as JSON
+    res.json({ videoUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Failed to fetch video URL' });
+  }
 });
 
-// Start server
+// Start the server
 app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
