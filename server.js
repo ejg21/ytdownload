@@ -1,5 +1,5 @@
 const express = require('express');
-const ytDlp = require('yt-dlp');  // Assuming yt-dlp is available globally
+const { exec } = require('child_process'); // Node's child_process module to run shell commands
 const app = express();
 const port = 3000;
 
@@ -15,12 +15,21 @@ app.get('/getVideoUrl', async (req, res) => {
   }
 
   try {
-    // Run yt-dlp to get the video URL
-    const result = await ytDlp.exec([url, '--get-url']);
-    const videoUrl = result.stdout.trim();
+    // Run yt-dlp to get the video URL using child_process
+    exec(`yt-dlp --get-url ${url}`, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error executing yt-dlp: ${error}`);
+        return res.status(500).json({ error: 'Failed to fetch video URL' });
+      }
 
-    // Return the video URL as JSON
-    res.json({ videoUrl });
+      if (stderr) {
+        console.error(`stderr: ${stderr}`);
+        return res.status(500).json({ error: 'Failed to fetch video URL' });
+      }
+
+      const videoUrl = stdout.trim(); // Remove any extra whitespace/newlines
+      res.json({ videoUrl });
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: 'Failed to fetch video URL' });
